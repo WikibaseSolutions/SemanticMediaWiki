@@ -97,12 +97,7 @@ class FileAttachment {
 		$semanticData = $this->store->getSemanticData( $dataItem );
 		$connection = $this->indexer->getConnection();
 
-		$params = [
-			'index' => $this->indexer->getIndexName( ElasticClient::TYPE_DATA ),
-			'id'    => $dataItem->getId(),
-		];
-
-		if ( !$connection->exists( $params ) ) {
+		if ( !$connection->exists( $this->indexer->getIndexName( ElasticClient::TYPE_DATA ), $dataItem->getId() ) ) {
 
 			$msg = [
 				'File indexer',
@@ -115,7 +110,9 @@ class FileAttachment {
 
 		// Available properties
 		// @see https://www.elastic.co/guide/en/elasticsearch/plugins/master/using-ingest-attachment.html
-		$params = $params + [
+		$params = [
+            'index' => $this->indexer->getIndexName( ElasticClient::TYPE_DATA ),
+            'id' => $dataItem->getId(),
 			'_source_includes' => [
 				'file_sha1',
 				'attachment.date',

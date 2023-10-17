@@ -260,13 +260,8 @@ class Rebuilder {
 			$index = $index . '-' . $this->versions[ElasticClient::TYPE_DATA];
 		}
 
-		$params = [
-			'index' => $index,
-			'id' => $id
-		];
-
 		try {
-			$this->client->delete( $params );
+			$this->client->delete( $index, $id );
 		} catch ( Exception $e ) {
 			// Do nothing
 		}
@@ -368,22 +363,14 @@ class Rebuilder {
 			$index = "$index-" . $this->versions[$type];
 		}
 
-		// @see https://www.elastic.co/guide/en/elasticsearch/reference/current/tune-for-indexing-speed.html
-		$params = [
-			'index' => $index,
-			'body' => [
-				'settings' => [
-					'number_of_replicas' => 0,
-					'refresh_interval' => -1
-				]
-			]
-		];
-
-		$this->client->putSettings( $params );
+		$this->client->putSettings( $index, [
+            'number_of_replicas' => 0,
+            'refresh_interval' => -1
+        ] );
 	}
 
 	private function refreshIndexByType( $type ) {
-		$this->client->refresh( [ 'index' => $this->client->getIndexName( $type ) ] );
+		$this->client->refresh( $this->client->getIndexName( $type ) );
 	}
 
 	private function setDefaultByType( $type ) {
@@ -424,21 +411,8 @@ class Rebuilder {
 			unset( $indexDef['settings']['number_of_replicas'] );
 		}
 
-		$params = [
-			'index' => $index,
-			'body' => [
-				'settings' => $indexDef['settings'] ?? []
-			]
-		];
-
-		$this->client->putSettings( $params );
-
-		$params = [
-			'index' => $index,
-			'body'  => $indexDef['mappings'] ?? []
-		];
-
-		$this->client->putMapping( $params );
+		$this->client->putSettings( $index,  $indexDef['settings'] ?? [] );
+		$this->client->putMapping( $index, $indexDef['mappings'] ?? [] );
 
 		$this->messageReporter->reportMessage( ', reopening ...' );
 		$this->client->openIndex( $index );

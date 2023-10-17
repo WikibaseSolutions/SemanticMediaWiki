@@ -70,16 +70,8 @@ class SettingsInfoProvider extends InfoProviderHandler {
 		$connection = $this->getStore()->getConnection( 'elastic' );
 
 		$settings = [
-			ElasticClient::TYPE_DATA => $connection->getSettings(
-				[
-					'index' => $connection->getIndexName( ElasticClient::TYPE_DATA )
-				]
-			),
-			ElasticClient::TYPE_LOOKUP => $connection->getSettings(
-				[
-					'index' => $connection->getIndexName( ElasticClient::TYPE_LOOKUP )
-				]
-			)
+			ElasticClient::TYPE_DATA => $connection->getSettings( $connection->getIndexName( ElasticClient::TYPE_DATA ) ),
+			ElasticClient::TYPE_LOOKUP => $connection->getSettings( $connection->getIndexName( ElasticClient::TYPE_DATA ) )
 		];
 
 		$html = ( new JsonView() )->create(

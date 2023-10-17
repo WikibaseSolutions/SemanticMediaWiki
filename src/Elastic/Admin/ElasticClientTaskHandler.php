@@ -276,6 +276,11 @@ class ElasticClientTaskHandler extends TaskHandler implements ActionableTask {
 		unset( $config['elastic/credentials'] );
 
 		foreach ( $endpoints as &$endpoint ) {
+            if ( is_string( $endpoint ) ) {
+                // Credentials given through $smwgElasticsearchCredentials
+                continue;
+            }
+
 			unset( $endpoint['user'] );
 			unset( $endpoint['pass'] );
 		}

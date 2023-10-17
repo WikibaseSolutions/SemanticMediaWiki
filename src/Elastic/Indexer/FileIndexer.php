@@ -194,28 +194,25 @@ class FileIndexer {
 
 		$time = -microtime( true );
 
-		$params = [
-			'id' => 'attachment',
-			'body' => [
-				'description' => 'Extract attachment information',
-				'processors' => [
-					[
-						'attachment' => [
-							'field' => 'file_content',
-							'indexed_chars' => -1
-						]
-					],
-					[
-						'remove' => [
-							"field" => "file_content"
-						]
-					]
-				]
-			],
-		];
+		$body = [
+            'description' => 'Extract attachment information',
+            'processors' => [
+                [
+                    'attachment' => [
+                        'field' => 'file_content',
+                        'indexed_chars' => -1
+                    ]
+                ],
+                [
+                    'remove' => [
+                        "field" => "file_content"
+                    ]
+                ]
+            ]
+        ];
 
 		$connection = $this->store->getConnection( 'elastic' );
-		$connection->ingestPutPipeline( $params );
+		$connection->ingestPutPipeline( 'attachment', $body );
 
 		if ( $file === null ) {
 			$file = $this->findFile( $title );
@@ -234,15 +231,14 @@ class FileIndexer {
 		$index = $this->getIndexName( ElasticClient::TYPE_DATA );
 		$doc = [ '_source' => [] ];
 
-		$params = [
-			'index' => $index,
-			'id'    => $id,
-		];
-
 		// Do we have any existing data? The ingest pipeline will override the
 		// entire document, so rescue any data before starting the ingest.
-		if ( $connection->exists( $params ) ) {
-			$doc = $connection->get( $params + [ '_source_includes' => [ 'file_sha1', 'subject', 'text_raw', 'text_copy', 'P*' ] ] );
+		if ( $connection->exists( $index, $id ) ) {
+			$doc = $connection->get( [
+                'index' => $index,
+                'id' => $id,
+                '_source_includes' => [ 'file_sha1', 'subject', 'text_raw', 'text_copy', 'P*' ]
+            ] );
 		}
 
 		// Is the sha1 the same? Don't do anything since the content is expected
@@ -274,6 +270,11 @@ class FileIndexer {
 			$this->fileHandler->fetchContentFromURL( $url ),
 			FileHandler::FORMAT_BASE64
 		);
+
+        $params = [
+            'id' => 'attachment',
+            'body' => $body
+        ];
 
 		$params += [
 			'pipeline' => 'attachment',

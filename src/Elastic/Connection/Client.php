@@ -5,6 +5,7 @@ namespace SMW\Elastic\Connection;
 use Elastic\Elasticsearch\Client as ElasticClient;
 use Elastic\Elasticsearch\Endpoints\Indices;
 use Elastic\Elasticsearch\Exception\ClientResponseException;
+use Elastic\Elasticsearch\Exception\MissingParameterException;
 use Elastic\Elasticsearch\Exception\ServerResponseException;
 use Elastic\Transport\Exception\NoNodeAvailableException;
 use Exception;
@@ -149,12 +150,13 @@ class Client {
 		return $indexDef[$type];
 	}
 
-	/**
-	 * @since 3.0
-	 *
-	 * @return integer
-	 */
-	public function getIndexDefFileModificationTimeByType( $type ) {
+    /**
+     * @param $type
+     * @return integer
+     * @since 3.0
+     *
+     */
+	public function getIndexDefFileModificationTimeByType( string $type ): int {
 
 		static $filemtime = [];
 
@@ -168,7 +170,7 @@ class Client {
 	/**
 	 * @since 3.0
 	 *
-	 * @return integer
+	 * @return integer|string|null
 	 */
 	public function getVersion() {
 
@@ -188,7 +190,7 @@ class Client {
 	 *
 	 * @return array
 	 */
-	public function getSoftwareInfo() {
+	public function getSoftwareInfo(): array {
 		return [
 			'component' => "[https://www.elastic.co/elasticsearch/ Elasticsearch]",
 			'version' => $this->getVersion()
@@ -197,8 +199,6 @@ class Client {
 
 	/**
 	 * @since 3.0
-	 *
-	 * @param array
 	 */
 	public function info(): array {
 
@@ -217,13 +217,12 @@ class Client {
      * @since 3.0
      *
      * @param string $type
-     * @param array $params
      * @return array
      *
      * @throws ClientResponseException
      * @throws ServerResponseException
      */
-	public function stats( string $type = 'indices', array $params = [] ): array {
+	public function stats( string $type = 'indices' ): array {
 
 		$indices = [
 			$this->getIndexName( self::TYPE_DATA ),
@@ -232,10 +231,10 @@ class Client {
 
         switch ( $type ) {
             case 'indices':
-                $res = $this->client->indices()->stats( [ 'index' => $indices ] + $params )->asArray();
+                $res = $this->client->indices()->stats( [ 'index' => $indices ] )->asArray();
                 break;
             case 'nodes':
-                $res = $this->client->nodes()->stats( $params )->asArray();
+                $res = $this->client->nodes()->stats()->asArray();
                 break;
             default:
                 return [];
@@ -247,7 +246,7 @@ class Client {
 		}
 
 		if ( $type === 'nodes' && isset( $res['nodes'] ) ) {
-			foreach ( $res['nodes'] as $key => &$value ) {
+			foreach ( $res['nodes'] as &$value ) {
 				// Remove privacy info
 				unset( $value['transport_address'] );
 				unset( $value['host'] );
@@ -260,35 +259,36 @@ class Client {
 
 	/**
 	 * @since 3.0
-	 *
-	 * @param array
 	 */
-	public function cat( $type, $params = [] ) {
+	public function cat( string $type ): array {
 
-		$res = [];
+        if ( $type !== 'indices' ) {
+            return [];
+        }
 
-		if ( $type === 'indices' ) {
-			$params += [ 'format' => 'json' ];
+        $res = [];
 
-            $indices = $this->client->cat()->indices( $params )->asArray();
+        try {
+            $indices = $this->client->cat()->indices( ['format' => 'json' ])->asArray();
+        } catch ( ClientResponseException|ServerResponseException $e ) {
+            return [];
+        }
 
-			foreach ( $indices as $value ) {
-				$res[$value['index']] = $value;
-				unset( $res[$value['index']]['index'] );
-			}
-		}
+        foreach ( $indices as $value ) {
+            $res[$value['index']] = $value;
+            unset( $res[$value['index']]['index'] );
+        }
 
-		return $res;
+        return $res;
 	}
 
-	/**
-	 * @since 3.0
-	 *
-	 * @param string $type
-	 *
-	 * @param boolean
-	 */
-	public function hasIndex( $type ) {
+    /**
+     * @param string $type
+     *
+     * @return bool
+     * @since 3.0
+     */
+	public function hasIndex( string $type ): bool {
 
 		if ( isset( self::$hasIndex[$type] ) && self::$hasIndex[$type] ) {
 			return true;
@@ -305,7 +305,7 @@ class Client {
 	 *
 	 * @param string $type
 	 */
-	public function createIndex( $type ) {
+	public function createIndex( string $type ): string {
 
 		$index = $this->getIndexName( $type );
 		$version = 'v1';
@@ -335,16 +335,15 @@ class Client {
 		return $version;
 	}
 
-	/**
-	 * @since 3.0
-	 *
-	 * @param string $index
-	 */
+    /**
+     * @param string $index
+     * @throws ClientResponseException
+     * @throws MissingParameterException
+     * @throws ServerResponseException
+     * @since 3.0
+     *
+     */
 	public function deleteIndex( string $index ) {
-
-		$params = [
-			'index' => $index,
-		];
 
         $context = [
             'method' => __METHOD__,
@@ -352,53 +351,105 @@ class Client {
             'index' => $index
         ];
 
-        $context['response'] = $this->client->indices()->delete( $params )->asArray();
+        try {
+            $context['response'] = $this->client->indices()->delete(['index' => $index])->asArray();
+        } catch ( ClientResponseException|MissingParameterException|ServerResponseException $e ) {
+            $context['exception'] = $e;
+            $this->logger->error( 'Failed to delete index {index} as role {role}: {exception}', $context );
+            throw $e;
+        }
+
         $this->logger->info( 'Deleted index {index} with: {response}', $context );
 	}
 
-	/**
-	 * @since 3.0
-	 *
-	 * @param array $params
-	 */
-	public function putSettings( array $params ) {
-		$this->client->indices()->putSettings( $params );
+    /**
+     * @param string $index
+     * @param array $settings
+     * @throws ClientResponseException
+     * @throws ServerResponseException
+     * @since 3.0
+     *
+     */
+	public function putSettings( string $index, array $settings ) {
+        try {
+            $this->client->indices()->putSettings( ['index' => $index, 'body' => ['settings' => $settings]] );
+        } catch ( ClientResponseException|ServerResponseException $e ) {
+            $context['exception'] = $e;
+            $this->logger->error( 'Failed to put settings on {index}: {exception}', $context);
+            throw $e;
+        }
 	}
 
-	/**
-	 * @since 3.0
-	 *
-	 * @param array $params
-	 */
-	public function putMapping( array $params ) {
-		$this->client->indices()->putMapping( $params );
+    /**
+     * @param string $index
+     * @param array $body
+     * @throws ClientResponseException
+     * @throws MissingParameterException
+     * @throws ServerResponseException
+     * @since 3.0
+     *
+     */
+	public function putMapping( string $index, array $body ) {
+        try {
+            $this->client->indices()->putMapping( ['index' => $index, 'body' => $body] );
+        } catch ( ClientResponseException|ServerResponseException $e ) {
+            $context['exception'] = $e;
+            $this->logger->error( 'Failed to put mapping on {index}: {exception}', $context);
+            throw $e;
+        }
 	}
 
-	/**
-	 * @since 3.0
-	 *
-	 * @param array $params
-	 */
-	public function getMapping( array $params ) {
-		return $this->client->indices()->getMapping( $params )->asArray();
+    /**
+     * @param string $index
+     * @return array
+     * @throws ClientResponseException
+     * @throws ServerResponseException
+     * @since 3.0
+     *
+     */
+	public function getMapping( string $index ): array {
+        try {
+            return $this->client->indices()->getMapping( ['index' => $index] )->asArray();
+        } catch ( ClientResponseException|ServerResponseException $e ) {
+            $context['exception'] = $e;
+            $this->logger->error( 'Failed to get mapping for {index}: {exception}', $context);
+            throw $e;
+        }
 	}
 
-	/**
-	 * @since 3.0
-	 *
-	 * @param array $params
-	 */
-	public function getSettings( array $params ) {
-		return $this->client->indices()->getSettings( $params )->asArray();
+    /**
+     * @param string $index
+     * @return array
+     * @throws ClientResponseException
+     * @throws ServerResponseException
+     * @since 3.0
+     *
+     */
+	public function getSettings( string $index ): array {
+        try {
+		    return $this->client->indices()->getSettings( ['index' => $index] )->asArray();
+        } catch ( ClientResponseException|ServerResponseException $e ) {
+            $context['exception'] = $e;
+            $this->logger->error( 'Failed to get settings for {index}: {exception}', $context);
+            throw $e;
+        }
 	}
 
-	/**
-	 * @since 3.0
-	 *
-	 * @param array $params
-	 */
-	public function refresh( array $params ) {
-		$this->client->indices()->refresh( [ 'index' => $params['index'] ] );
+    /**
+     * @param string $index
+     * @throws ClientResponseException
+     * @throws ServerResponseException
+     * @since 3.0
+     *
+     */
+	public function refresh( string $index ) {
+        try {
+            $this->client->indices()->refresh( [ 'index' => $index ] );
+        } catch ( ClientResponseException|ServerResponseException $e ) {
+            $context['exception'] = $e;
+            $this->logger->error( 'Failed to refresh {index}: {exception}', $context);
+            throw $e;
+        }
 	}
 
 	/**
@@ -441,7 +492,7 @@ class Client {
 	 *
 	 * @return boolean
 	 */
-	public function ping() {
+	public function ping(): bool {
 
 		if ( self::$ping !== null ) {
 			return self::$ping;
@@ -451,8 +502,12 @@ class Client {
 			return self::$ping = $this->quick_ping();
 		}
 
-		return self::$ping = $this->client->ping()->asBool();
-	}
+        try {
+            return self::$ping = $this->client->ping()->asBool();
+        } catch (ClientResponseException|ServerResponseException $e) {
+            return false;
+        }
+    }
 
 	/**
 	 * Check is faster than the standard Client::ping
@@ -461,7 +516,7 @@ class Client {
 	 *
 	 * @return boolean
 	 */
-	public function quick_ping( $timeout = 2 ) {
+	public function quick_ping( int $timeout = 2 ): bool {
 
 		$hosts = $this->options->get( Config::ELASTIC_ENDPOINTS );
 
@@ -481,40 +536,63 @@ class Client {
 		return false;
 	}
 
-	/**
-	 * @see Client::exists
-	 * @since 3.0
-	 *
-	 * @param array $params
-	 *
-	 * @return boolean
-	 */
-	public function exists( array $params ) {
-		return $this->client->exists( $params )->asBool();
+    /**
+     * @param array $params
+     *
+     * @return boolean
+     * @throws ClientResponseException
+     * @throws MissingParameterException
+     * @throws ServerResponseException
+     * @since 3.0
+     *
+     * @see Client::exists
+     */
+	public function exists( string $index, string $id ): bool {
+        try {
+            return $this->client->exists( ['index' => $index, 'id' => $id] )->asBool();
+        } catch ( ClientResponseException|MissingParameterException|ServerResponseException $e ) {
+            $context['exception'] = $e;
+            $this->logger->error( 'Failed to check if {index} exists: {exception}', $context);
+            throw $e;
+        }
 	}
 
-	/**
-	 * @see Client::get
-	 * @since 3.0
-	 *
-	 * @param array $params
-	 *
-	 * @return array
-	 */
-	public function get( array $params ) {
-		return $this->client->get( $params )->asArray();
+    /**
+     * @param array $params
+     *
+     * @return array
+     * @throws ClientResponseException
+     * @throws MissingParameterException
+     * @throws ServerResponseException
+     * @since 3.0
+     *
+     * @see Client::get
+     */
+	public function get( array $params ): array {
+        try {
+            return $this->client->get( $params )->asArray();
+        }  catch ( ClientResponseException|MissingParameterException|ServerResponseException $e ) {
+            $context['exception'] = $e;
+            $context['params'] = $params;
+            $this->logger->error( 'Failed to get document using {params}: {exception}', $context);
+            throw $e;
+        }
+
 	}
 
-	/**
-	 * @see Client::delete
-	 * @since 3.0
-	 *
-	 * @param array $params
-	 *
-	 * @return array
-	 */
-	public function delete( array $params ) {
-		return $this->client->delete( $params )->asArray();
+    /**
+     * @param string $index
+     * @param string $id
+     * @return array
+     * @throws ClientResponseException
+     * @throws MissingParameterException
+     * @throws ServerResponseException
+     * @see Client::delete
+     * @since 3.0
+     *
+     */
+	public function delete( string $index, string $id ): array {
+		return $this->client->delete( ['index' => $index, 'id' => $id] )->asArray();
 	}
 
 	/**
@@ -653,7 +731,7 @@ class Client {
 			$results = $this->client->count( $params )->asArray();
 		} catch ( Exception $e ) {
 			$context['exception'] = $e->getMessage();
-			$this->logger->info( 'Failed the count with: {exception}', $context );
+			$this->logger->info( 'Failed to get the count with: {exception}', $context );
 		}
 
 		$context = [
@@ -714,21 +792,22 @@ class Client {
 		return [ $results, $errors ];
 	}
 
-	/**
-	 * @see Client::explain
-	 * @since 3.0
-	 *
-	 * @param array $params
-	 *
-	 * @return mixed
-	 */
-	public function explain( array $params ) {
+    /**
+     * @param string $index
+     * @param string $id
+     * @return mixed
+     * @since 3.0
+     *
+     * @see Client::explain
+     */
+	public function explain( string $index, string $id ): array {
 
-		if ( $params === [] ) {
-			return [];
-		}
-
-		return $this->client->explain( $params )->asArray();
+        try {
+            return $this->client->explain( ['index' => $index, 'id' => $id] )->asArray();
+        } catch ( Exception $e ) {
+            $this->logger->error( 'Failed to explain: {exception}', ['exception' => $e] );
+            return [];
+        }
 	}
 
 	/**
@@ -741,53 +820,99 @@ class Client {
 		$this->client->indices()->updateAliases( $params );
 	}
 
-	/**
-	 * @since 4.2.0
-	 *
-	 * @param string $index
-	 *
-	 * @return bool
-	 */
+    /**
+     * @param string $index
+     *
+     * @return bool
+     * @throws ClientResponseException
+     * @throws MissingParameterException
+     * @throws ServerResponseException
+     * @since 4.2.0
+     *
+     */
 	public function indexExists( string $index ): bool {
-		return $this->client->indices()->exists( [ 'index' => $index ] )->asBool();
-	}
-
-	/**
-	 * @since 4.2.0
-	 *
-	 * @param string $index
-	 *
-	 * @return bool
-	 */
-	public function aliasExists( string $index ): bool {
-		return $this->client->indices()->existsAlias( [ 'name' => $index ] )->asBool();
-	}
-
-	/**
-	 * @since 4.2.0
-	 *
-	 * @param string $index
-	 */
-	public function openIndex( string $index ) {
-		$this->client->indices()->open( [ 'index' => $index ] );
-	}
-
-	/**
-	 * @since 4.2.0
-	 *
-	 * @param string $index
-	 */
-	public function closeIndex( string $index ) {
-		$this->client->indices()->close( [ 'index' => $index ] );
+        try {
+            return $this->client->indices()->exists( [ 'index' => $index ] )->asBool();
+        } catch ( ClientResponseException|MissingParameterException|ServerResponseException $e ) {
+            $context['exception'] = $e;
+            $this->logger->error( 'Failed to check if index exists: {exception}', $context);
+            throw $e;
+        }
 	}
 
     /**
+     * @param string $index
+     *
+     * @return bool
+     * @throws ClientResponseException
+     * @throws MissingParameterException
+     * @throws ServerResponseException
      * @since 4.2.0
      *
-     * @param array $params
      */
-    public function ingestPutPipeline( array $params ) {
-        $this->client->ingest()->putPipeline( $params );
+	public function aliasExists( string $index ): bool {
+        try {
+            return $this->client->indices()->existsAlias( [ 'name' => $index ] )->asBool();
+        } catch ( ClientResponseException|MissingParameterException|ServerResponseException $e ) {
+            $context['exception'] = $e;
+            $this->logger->error( 'Failed to check if index alias exists: {exception}', $context);
+            throw $e;
+        }
+	}
+
+    /**
+     * @param string $index
+     * @throws ClientResponseException
+     * @throws MissingParameterException
+     * @throws ServerResponseException
+     * @since 4.2.0
+     *
+     */
+	public function openIndex( string $index ) {
+        try {
+            $this->client->indices()->open( [ 'index' => $index ] );
+        } catch ( ClientResponseException|MissingParameterException|ServerResponseException $e ) {
+            $context['exception'] = $e;
+            $this->logger->error( 'Failed to open index: {exception}', $context);
+            throw $e;
+        }
+	}
+
+    /**
+     * @param string $index
+     * @throws ClientResponseException
+     * @throws MissingParameterException
+     * @throws ServerResponseException
+     * @since 4.2.0
+     *
+     */
+	public function closeIndex( string $index ) {
+        try {
+            $this->client->indices()->close( [ 'index' => $index ] );
+        } catch ( ClientResponseException|MissingParameterException|ServerResponseException $e ) {
+            $context['exception'] = $e;
+            $this->logger->error( 'Failed to close index: {exception}', $context);
+            throw $e;
+        }
+	}
+
+    /**
+     * @param string $id
+     * @param array $body
+     * @throws ClientResponseException
+     * @throws MissingParameterException
+     * @throws ServerResponseException
+     * @since 4.2.0
+     *
+     */
+    public function ingestPutPipeline( string $id, array $body ) {
+        try {
+         $this->client->ingest()->putPipeline( ['id' => $id, 'body' => $body] );
+        } catch ( ClientResponseException|MissingParameterException|ServerResponseException $e ) {
+            $context['exception'] = $e;
+            $this->logger->error( 'Failed to put ingest pipeline: {exception}', $context);
+            throw $e;
+        }
     }
 
 	/**
@@ -795,7 +920,7 @@ class Client {
 	 *
 	 * @return boolean
 	 */
-	public function hasMaintenanceLock() {
+	public function hasMaintenanceLock(): bool {
 		return $this->lockManager->hasMaintenanceLock();
 	}
 

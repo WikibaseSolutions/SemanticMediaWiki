@@ -388,9 +388,10 @@ class TermsLookup implements ITermsLookup {
 	private function terms_index( $id, $results ) {
 
 		$connection = $this->store->getConnection( 'elastic' );
+        $index = $connection->getIndexName( ElasticClient::TYPE_LOOKUP );
 
 		$params = [
-			'index' => $connection->getIndexName( ElasticClient::TYPE_LOOKUP ),
+			'index' => $index,
 			'id'    => $id
 		];
 
@@ -403,7 +404,7 @@ class TermsLookup implements ITermsLookup {
 		$connection->index( $params + [ 'body' => [ 'id' => $results ] ] );
 
 		// Refresh to ensure results are available for the upcoming search
-		$connection->refresh( $params );
+		$connection->refresh( $index );
 
 		// Define path for the terms filter
 		return $params + [ 'path' => 'id' ];

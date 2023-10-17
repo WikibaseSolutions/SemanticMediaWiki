@@ -69,12 +69,7 @@ class ReplicationStatus {
 	 */
 	private function exists( $id ) {
 
-		$params = [
-			'index' => $this->connection->getIndexName( ElasticClient::TYPE_DATA ),
-			'id'    => $id,
-		];
-
-		return $this->connection->exists( $params );
+		return $this->connection->exists( $this->connection->getIndexName( ElasticClient::TYPE_DATA ), $id );
 	}
 
 	/**
@@ -86,17 +81,17 @@ class ReplicationStatus {
 	 */
 	private function modification_date_associated_revision( $id ) {
 
-		$params = [
-			'index' => $this->connection->getIndexName( ElasticClient::TYPE_DATA ),
-			'id'    => $id,
-		];
-
-		if ( !$this->connection->exists( $params ) ) {
+        if ( !$this->connection->exists(  $this->connection->getIndexName( ElasticClient::TYPE_DATA ), $id ) ) {
 			return [ 'modification_date' => false, 'associated_revision' => 0 ];
 		}
 
 		$pid = $this->fieldMapper->getPID( \SMW\SQLStore\EntityStore\EntityIdManager::$special_ids['_MDAT'] );
 		$field = $this->fieldMapper->getField( new DIProperty( '_MDAT' ) );
+
+        $params = [
+            'index' => $this->connection->getIndexName( ElasticClient::TYPE_DATA ),
+            'id'    => $id,
+        ];
 
 		$doc = $this->connection->get( $params + [ '_source_includes' => [ "$pid.$field", "subject.rev_id" ] ] );
 
@@ -126,17 +121,17 @@ class ReplicationStatus {
 	 */
 	public function getModificationDate( $id ) {
 
-		$params = [
-			'index' => $this->connection->getIndexName( ElasticClient::TYPE_DATA ),
-			'id'    => $id,
-		];
-
-		if ( !$this->connection->exists( $params ) ) {
+		if ( !$this->connection->exists( $this->connection->getIndexName( ElasticClient::TYPE_DATA ), $id ) ) {
 			return false;
 		}
 
 		$pid = $this->fieldMapper->getPID( \SMW\SQLStore\EntityStore\EntityIdManager::$special_ids['_MDAT'] );
 		$field = $this->fieldMapper->getField( new DIProperty( '_MDAT' ) );
+
+        $params = [
+            'index' => $this->connection->getIndexName( ElasticClient::TYPE_DATA ),
+            'id'    => $id,
+        ];
 
 		$doc = $this->connection->get( $params + [ '_source_includes' => [ "$pid.$field" ] ] );
 
@@ -162,14 +157,14 @@ class ReplicationStatus {
 	 */
 	public function getAssociatedRev( $id ) {
 
-		$params = [
-			'index' => $this->connection->getIndexName( ElasticClient::TYPE_DATA ),
-			'id'    => $id,
-		];
-
-		if ( !$this->connection->exists( $params ) ) {
+        if ( !$this->connection->exists(  $this->connection->getIndexName( ElasticClient::TYPE_DATA ), $id ) ) {
 			return 0;
 		}
+
+        $params = [
+            'index' => $this->connection->getIndexName( ElasticClient::TYPE_DATA ),
+            'id'    => $id,
+        ];
 
 		$doc = $this->connection->get( $params + [ '_source_includes' => [ "subject.rev_id" ] ] );
 
@@ -187,13 +182,9 @@ class ReplicationStatus {
 
 		$refresh_interval = null;
 
-		$settings = $this->connection->getSettings(
-			[
-				'index' => $this->connection->getIndexName( ElasticClient::TYPE_DATA )
-			]
-		);
+		$settings = $this->connection->getSettings( $this->connection->getIndexName( ElasticClient::TYPE_DATA ) );
 
-		foreach ( $settings as $key => $value ) {
+		foreach ( $settings as $value ) {
 			if ( isset( $value['settings']['index']['refresh_interval'] ) ) {
 				$refresh_interval = $value['settings']['index']['refresh_interval'];
 			}
