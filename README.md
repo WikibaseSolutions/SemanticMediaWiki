@@ -1,3 +1,27 @@
+> Installing this branch is currently quite complicated, because of some upstream dependency issues. Below is a step-by-step guide to install it.
+
+1. Clone this repository into `extensions/SemanticMediaWiki`;
+2. Check out `elasticsearch-810` using `git checkout elasticsearch-810`;
+3. In your `composer.local.json`, add the following snippet under `repositories`:
+  ```
+  "semantic-media-wiki": {
+     "type": "path",
+     "url": "./extensions/SemanticMediaWiki"
+  },
+  ```
+4. Change or add `"mediawiki/semantic-media-wiki": "@dev"` in your dependencies in your `composer.local.json`;
+5. Change or add `"elasticsearch/elasticsearch": "~8.10.0"` in your dependencies in your `composer.local.json`;
+6. Change the version of `psr/http-message` in the root `composer.json` (NOT `composer.local.json`) from `1.0.1` to `1.1.0`;
+7. Run `composer update`;
+8. Run `php maintenance/update.php` (if you get an exception like "No PSR-17 URL factory found", try running `composer require php-http/curl-client guzzlehttp/psr7 php-http/message`);
+9. Run `php extensions/SemanticMediaWiki/maintenance/rebuildElasticIndex.php` (if you use WikiSearch, you can also skip this step and follow the steps below FIRST, otherwise you run `rebuildElasticIndex.php` twice);
+
+Your wiki should now be working again. Try to change some properties, and see if they are updated. If you are using `WikiSearch`, you need to perform the following additional steps:
+
+1. Change your version of WikiSearch to `dev-es-810-mw-139`, which works with MediaWiki 1.39 and ElasticSearch 8.10;
+2. Update the data standard of WikiSearch if you have a custom one to the new version (a template is provided in `WikiSearch/data_templates/smw-wikisearch-data-standard-template.json`);
+3. Run `rebuildElasticIndex.php` again.
+
 # Semantic MediaWiki
 
 [![CI](https://github.com/SemanticMediaWiki/SemanticMediaWiki/actions/workflows/main.yml/badge.svg)](https://github.com/SemanticMediaWiki/SemanticMediaWiki/actions/workflows/main.yml)
