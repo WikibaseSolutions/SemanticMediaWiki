@@ -128,12 +128,12 @@ class FileAttachment {
 
 		$doc = $connection->get( $params );
 
-		if ( !isset( $doc['_source']['file_sha1'] ) ) {
+		if ( !isset( $doc['_source']['attachment'] ) ) {
 
 			$msg = [
 				'File indexer',
 				'No annotation update',
-				'Missing file_sha1!'
+				'Missing attachment!'
 			];
 
 			return $this->logger->info( $msg, $context );
