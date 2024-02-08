@@ -163,7 +163,7 @@ class SomePropertyInterpreter {
 
 			// Use case: `[[Category:Q0905]] [[!Example/Q0905/1]] <q>[[Has page::123]]
 			// OR [[Has page::!ABCD]]</q>`
-			$params = [ $this->fieldMapper->exists( "$pid.$field" ), $condition ];
+			$params = $this->fieldMapper->bool( 'must', [ $this->fieldMapper->exists( "$pid.$field" ), $condition ] );
 			$condition = $this->conditionBuilder->newCondition( $params );
 			$condition->type( '' );
 
