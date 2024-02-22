@@ -263,13 +263,13 @@ class FileIndexer {
 			return;
 		}
 
-        // Fix for closed-off wiki's where SSL is not installed properly
-        stream_context_set_default( [
-            'ssl' => [
-                'verify_peer' => false,
-                'verify_peer_name' => false,
-            ],
-        ]);
+		// Fix for closed-off wiki's where SSL is not installed properly
+		stream_context_set_default( [
+			'ssl' => [
+				'verify_peer' => false,
+				'verify_peer_name' => false,
+			],
+		]);
 
 		// https://www.elastic.co/guide/en/elasticsearch/plugins/master/ingest-attachment.html
 		// "... The source field must be a base64 encoded binary or ... the
@@ -279,13 +279,13 @@ class FileIndexer {
 			FileHandler::FORMAT_BASE64
 		);
 
-        // Reset the stream context
-        stream_context_set_default( [
-            'ssl' => [
-                'verify_peer' => true,
-                'verify_peer_name' => true,
-            ],
-        ]);
+		// Reset the stream context
+		stream_context_set_default( [
+			'ssl' => [
+				'verify_peer' => true,
+				'verify_peer_name' => true,
+			],
+		]);
 
 		$params = [
 			'index' => $connection->getIndexName( ElasticClient::TYPE_DATA ),
@@ -323,29 +323,29 @@ class FileIndexer {
 		$this->fileAttachment->createAttachment( $dataItem );
 	}
 
-    /**
-     * Tries to add a scheme to the url, if a relative url was passed.
-     *
-     * @param string $url
-     *
-     * @return string
-     */
-    private function protocolizeUrl( string $url ): string {
-        $parsed = parse_url( $url );
+	/**
+	 * Tries to add a scheme to the url, if a relative url was passed.
+	 *
+	 * @param string $url
+	 *
+	 * @return string
+	 */
+	private function protocolizeUrl( string $url ): string {
+		$parsed = parse_url( $url );
 
-        if ( $parsed !== false && isset( $parsed['scheme'] ) ) {
-            return $url;
-        }
+		if ( $parsed !== false && isset( $parsed['scheme'] ) ) {
+			return $url;
+		}
 
-        // $mainContext = RequestContext::getMain();
-        //
-        // Default scheme if RequestContext is null, in hope that it gets redirect if https is required
-        // $scheme = 'http';
-        // if ( $mainContext !== null && $mainContext->getRequest()->getProtocol() !== null ) {
-        //	$scheme = $mainContext->getRequest()->getProtocol();
-        // }
-        $scheme = 'https';
+		// $mainContext = RequestContext::getMain();
+		//
+		// Default scheme if RequestContext is null, in hope that it gets redirect if https is required
+		// $scheme = 'http';
+		// if ( $mainContext !== null && $mainContext->getRequest()->getProtocol() !== null ) {
+		//	$scheme = $mainContext->getRequest()->getProtocol();
+		// }
+		$scheme = 'https';
 
-        return sprintf( '%s://%s', $scheme, trim( $url, '/' ) );
-    }
+		return sprintf( '%s://%s', $scheme, trim( $url, '/' ) );
+	}
 }
