@@ -163,6 +163,7 @@ class QueryComparator {
 			'in:' => SMW_CMP_IN,
 			'not:' => SMW_CMP_NOT,
 			'phrase:' => SMW_CMP_PHRASE,
+			'es:' => SMW_CMP_ES,
 			'!~' => SMW_CMP_NLKE,
 			'<<' => SMW_CMP_LESS,
 			'>>' => SMW_CMP_GRTR,
