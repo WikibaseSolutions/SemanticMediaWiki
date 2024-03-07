@@ -144,10 +144,22 @@ class Bulk implements JsonSerializable {
 	 */
 	public function execute() {
 
-		$this->response = $this->connection->bulk(
-			$this->bulk
-		);
+        $numTries = 3;
+        $response = [];
 
+        while ( $numTries-- > 0 ) {
+            $response = $this->connection->bulk(
+                $this->bulk
+            );
+
+            if ( is_array( $response ) ) {
+                break;
+            } else {
+                $response = [];
+            }
+        }
+
+        $this->response = $response;
 		$this->bulk = [];
 	}
 
