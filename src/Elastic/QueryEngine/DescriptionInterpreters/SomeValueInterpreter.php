@@ -248,6 +248,10 @@ class SomeValueInterpreter {
 			$match = $this->fieldMapper->term( "$pid.$field", $value );
 		} elseif ( $comparator === SMW_CMP_NEQ ) {
 			$match = $this->fieldMapper->term( "$pid.$field", $value );
+		} elseif ( $comparator === SMW_CMP_ES ) {
+			$this->fieldMapper->isCompatMode( false );
+			$match = $this->fieldMapper->query_string("$pid.$field", $value, ["minimum_should_match" => 1]);
+			$this->fieldMapper->isCompatMode(true);
 		} else {
 			$match = $this->fieldMapper->match( "$pid.$field", $value, 'and' );
 		}
@@ -324,6 +328,10 @@ class SomeValueInterpreter {
 			}
 
 			$match = $this->fieldMapper->query_string( "$pid.$field", $value );
+		} elseif ( $comparator === SMW_CMP_ES ) {
+			$this->fieldMapper->isCompatMode( false );
+			$match = $this->fieldMapper->query_string("$pid.$field", $value, ["minimum_should_match" => 1]);
+			$this->fieldMapper->isCompatMode(true);
 		} else {
 			$match = $this->fieldMapper->match( "$pid.$field", $value, 'and' );
 		}
@@ -379,6 +387,10 @@ class SomeValueInterpreter {
 			}
 
 			$match = $this->fieldMapper->query_string( "$pid.$field", $value );
+		} elseif ( $comparator === SMW_CMP_ES ) {
+			$this->fieldMapper->isCompatMode( false );
+			$match = $this->fieldMapper->query_string("$pid.$field", $value, ["minimum_should_match" => 1]);
+			$this->fieldMapper->isCompatMode(true);
 		} else {
 			$match = $this->fieldMapper->match( "$pid.$field", $value, 'and' );
 		}
@@ -432,6 +444,10 @@ class SomeValueInterpreter {
 			$match = $this->fieldMapper->term( "$pid.$field", $value );
 		} elseif ( $comparator === SMW_CMP_NEQ ) {
 			$match = $this->fieldMapper->term( "$pid.$field", $value );
+		} elseif ( $comparator === SMW_CMP_ES ) {
+			$this->fieldMapper->isCompatMode( false );
+			$match = $this->fieldMapper->query_string("$pid.$field", $value, ["minimum_should_match" => 1]);
+			$this->fieldMapper->isCompatMode(true);
 		} else {
 			$match = $this->fieldMapper->match( "$pid.$field", $value, 'and' );
 		}
@@ -466,6 +482,10 @@ class SomeValueInterpreter {
 			$match = $this->fieldMapper->term( "$pid.$field", $value );
 		} elseif ( $comparator === SMW_CMP_NEQ ) {
 			$match = $this->fieldMapper->term( "$pid.$field", $value );
+		} elseif ( $comparator === SMW_CMP_ES ) {
+			$this->fieldMapper->isCompatMode( false );
+			$match = $this->fieldMapper->query_string("$pid.$field", $value, ["minimum_should_match" => 1]);
+			$this->fieldMapper->isCompatMode(true);
 		} else {
 			$match = $this->fieldMapper->match( "$pid.$field", $value, 'and' );
 		}
