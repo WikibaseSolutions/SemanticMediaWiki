@@ -672,7 +672,7 @@ return (function() {
 		#
 		# @since 1.0
 		##
-		'smwgQComparators' => '<|>|!~|!|~|≤|≥|<<|>>|~=|like:|nlike:|in:|not:|phrase:',
+		'smwgQComparators' => '<|>|!~|!|~|≤|≥|<<|>>|~=|like:|nlike:|in:|not:|phrase:|es:',
 		##
 
 		###

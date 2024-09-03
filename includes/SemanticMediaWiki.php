@@ -375,6 +375,8 @@ class SemanticMediaWiki {
 		define( 'SMW_CMP_PHRASE', 23 );
 		// Short-cut for ~! ... * ostly for a full-text context
 		define( 'SMW_CMP_NOT', 24 );
+		// Forces the use of ES query_string syntax
+		define( 'SMW_CMP_ES', 25 );
 		/**@}*/
 
 		/**@{

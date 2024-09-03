@@ -120,6 +120,18 @@ class ValueDescriptionInterpreter {
 			$params = $this->fieldMapper->terms( "$field", $value );
 		} elseif ( $comparator === SMW_CMP_LIKE || $comparator === SMW_CMP_NLKE ) {
 			$params = $this->proximity_bool( $field, $value );
+		} elseif ( $comparator === SMW_CMP_ES ) {
+			$fields = [
+				"subject.title",
+				"text_copy",
+				"text_raw",
+				"attachment.title",
+				"attachment.content"
+			];
+
+			$this->fieldMapper->isCompatMode( false );
+			$params = $this->fieldMapper->query_string($fields, $value, ["minimum_should_match" => 1]);
+			$this->fieldMapper->isCompatMode(true);
 		} elseif ( $this->isRange( $comparator ) ) {
 			$params = $this->fieldMapper->range( $field, $value, $comparator );
 		} else {
