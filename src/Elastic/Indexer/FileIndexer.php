@@ -188,24 +188,27 @@ class FileIndexer {
 		$time = -microtime( true );
 
 		$params = [
-            'description' => 'Extract attachment information',
-            'processors' => [
-                [
-                    'attachment' => [
-                        'field' => 'file_content',
-                        'indexed_chars' => -1
-                    ]
-                ],
-                [
-                    'remove' => [
-                        "field" => "file_content"
+            'id' => 'attachment',
+            'body' => [
+                'description' => 'Extract attachment information',
+                'processors' => [
+                    [
+                        'attachment' => [
+                            'field' => 'file_content',
+                            'indexed_chars' => -1
+                        ]
+                    ],
+                    [
+                        'remove' => [
+                            "field" => "file_content"
+                        ]
                     ]
                 ]
             ]
 		];
 
 		$connection = $this->store->getConnection( 'elastic' );
-		$connection->ingestPutPipeline( 'attachment', $params );
+		$connection->ingestPutPipeline( $params );
 
 		if ( $file === null ) {
 			$file = $this->findFile( $title );
