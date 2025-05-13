@@ -188,27 +188,24 @@ class FileIndexer {
 		$time = -microtime( true );
 
 		$params = [
-			'id' => 'attachment',
-			'body' => [
-				'description' => 'Extract attachment information',
-				'processors' => [
-					[
-						'attachment' => [
-							'field' => 'file_content',
-							'indexed_chars' => -1
-						]
-					],
-					[
-						'remove' => [
-							"field" => "file_content"
-						]
-					]
-				]
-			],
+            'description' => 'Extract attachment information',
+            'processors' => [
+                [
+                    'attachment' => [
+                        'field' => 'file_content',
+                        'indexed_chars' => -1
+                    ]
+                ],
+                [
+                    'remove' => [
+                        "field" => "file_content"
+                    ]
+                ]
+            ]
 		];
 
 		$connection = $this->store->getConnection( 'elastic' );
-		$connection->ingestPutPipeline( $params );
+		$connection->ingestPutPipeline( 'attachment', $params );
 
 		if ( $file === null ) {
 			$file = $this->findFile( $title );
@@ -218,7 +215,7 @@ class FileIndexer {
 			return;
 		}
 
-		$url = $file->getFullURL();
+		$url = $this->protocolizeUrl( $file->getFullURL() );
 		$id = $dataItem->getId();
 
 		$sha1 = $file->getSha1();
@@ -260,6 +257,14 @@ class FileIndexer {
 			return;
 		}
 
+        // Fix for closed-off wiki's where SSL is not installed properly
+        stream_context_set_default( [
+            'ssl' => [
+                'verify_peer' => false,
+                'verify_peer_name' => false,
+            ],
+        ]);
+
 		// https://www.elastic.co/guide/en/elasticsearch/plugins/master/ingest-attachment.html
 		// "... The source field must be a base64 encoded binary or ... the
 		// CBOR format ..."
@@ -268,7 +273,17 @@ class FileIndexer {
 			FileHandler::FORMAT_BASE64
 		);
 
+        // Reset the stream context
+        stream_context_set_default( [
+            'ssl' => [
+                'verify_peer' => true,
+                'verify_peer_name' => true,
+            ],
+        ]);
+
 		$params += [
+            'index' => $connection->getIndexName( ElasticClient::TYPE_DATA ),
+            'id' => $id,
 			'pipeline' => 'attachment',
 			'body' => [
 				'file_content' => $content,
@@ -301,5 +316,24 @@ class FileIndexer {
 
 		$this->fileAttachment->createAttachment( $dataItem );
 	}
+
+    /**
+     * Tries to add a scheme to the url, if a relative url was passed.
+     *
+     * @param string $url
+     *
+     * @return string
+     */
+    private function protocolizeUrl( string $url ): string {
+        $parsed = parse_url( $url );
+
+        if ( $parsed !== false && isset( $parsed['scheme'] ) ) {
+            return $url;
+        }
+
+        $scheme = 'https';
+
+        return sprintf( '%s://%s', $scheme, trim( $url, '/' ) );
+    }
 
 }
