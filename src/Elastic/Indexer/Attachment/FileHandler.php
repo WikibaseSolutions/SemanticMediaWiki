@@ -14,121 +14,129 @@ use Title;
  *
  * @author mwjames
  */
-class FileHandler {
+class FileHandler
+{
 
-	use LoggerAwareTrait;
+    use LoggerAwareTrait;
 
-	/**
-	 * Transform the content to base64
-	 */
-	const FORMAT_BASE64 = 'format/base64';
+    /**
+     * Transform the content to base64
+     */
+    const FORMAT_BASE64 = 'format/base64';
 
-	/**
-	 * @var FileRepoFinder
-	 */
-	private $fileRepoFinder;
+    /**
+     * @var FileRepoFinder
+     */
+    private $fileRepoFinder;
 
-	/**
-	 * @var callable
-	 */
-	private $readCallback;
+    /**
+     * @var callable
+     */
+    private $readCallback;
 
-	/**
-	 * @since 3.2
-	 *
-	 * @param FileRepoFinder $fileRepoFinder
-	 */
-	public function __construct( FileRepoFinder $fileRepoFinder ) {
-		$this->fileRepoFinder = $fileRepoFinder;
-	}
+    /**
+     * @param FileRepoFinder $fileRepoFinder
+     * @since 3.2
+     *
+     */
+    public function __construct(FileRepoFinder $fileRepoFinder)
+    {
+        $this->fileRepoFinder = $fileRepoFinder;
+    }
 
-	/**
-	 * @since 3.2
-	 *
-	 * @param callable $readCallback
-	 */
-	public function setReadCallback( callable $readCallback ) {
-		$this->readCallback = $readCallback;
-	}
+    /**
+     * @param callable $readCallback
+     * @since 3.2
+     *
+     */
+    public function setReadCallback(callable $readCallback)
+    {
+        $this->readCallback = $readCallback;
+    }
 
-	/**
-	 * @since 3.2
-	 *
-	 * @param Title $title
-	 *
-	 * @return string
-	 */
-	public function findFileByTitle( Title $title ) {
-		return $this->fileRepoFinder->findFile( $title );
-	}
+    /**
+     * @param Title $title
+     *
+     * @return string
+     * @since 3.2
+     *
+     */
+    public function findFileByTitle(Title $title)
+    {
+        return $this->fileRepoFinder->findFile($title);
+    }
 
-	/**
-	 * @since 5.0.3
-	 *
-	 * @param File $file
-	 *
-	 * @return string
-	 */
-	public function fetchContentFromFile( File $file ): string {
-		$be = $file->getRepo()->getBackend();
+    /**
+     * @param File $file
+     *
+     * @return string
+     * @since 5.0.3
+     *
+     */
+    public function fetchContentFromFile(File $file): string
+    {
+        $be = $file->getRepo()->getBackend();
 
-		$content = '';
+        $content = '';
 
-		if ( $be instanceof FileBackend ) {
-			$content = $be->getFileContents( [ 'src' => $file->getPath() ] ) ?: '';
-		}
+        if ($be instanceof FileBackend) {
+            $content = $be->getFileContents(['src' => $file->getPath()]) ?: '';
+        }
 
-		return $content;
-	}
+        return $content;
+    }
 
-	/**
-	 * @since 3.2
-	 *
-	 * @param string $url
-	 *
-	 * @return string
-	 */
-	public function fetchContentFromURL( string $url ): string {
-		// PHP 7.1+
-		$readCallback = $this->readCallback;
+    /**
+     * @param string $url
+     *
+     * @return string
+     * @since 3.2
+     *
+     */
+    public function fetchContentFromURL(string $url): string
+    {
+        // PHP 7.1+
+        $readCallback = $this->readCallback;
 
-		if ( $this->readCallback !== null ) {
-			return $readCallback( $url );
-		}
+        if ($this->readCallback !== null) {
+            return $readCallback($url);
+        }
 
-		$contents = '';
+        $contents = '';
 
-		// Avoid a "failed to open stream: HTTP request failed! HTTP/1.1 404 Not Found"
-		$file_headers = @get_headers( $url );
+        // Avoid a "failed to open stream: HTTP request failed! HTTP/1.1 404 Not Found"
+        $file_headers = @get_headers($url);
 
-		if (
-			$file_headers !== false &&
-			$file_headers[0] !== 'HTTP/1.1 404 Not Found' &&
-			$file_headers[0] !== 'HTTP/1.0 404 Not Found' ) {
-			return file_get_contents( $url );
-		}
+        if (
+            $file_headers !== false &&
+            $file_headers[0] !== 'HTTP/1.1 404 Not Found' &&
+            $file_headers[0] !== 'HTTP/1.0 404 Not Found') {
+            return file_get_contents($url);
+        }
 
-		$this->logger->info(
-			[ 'File indexer', 'HTTP/1.1 404 Not Found', '{url}' ],
-			[ 'method' => __METHOD__, 'role' => 'production', 'url' => $url ]
-		);
+        $this->logger->info(
+            ['File indexer', 'HTTP/1.1 404 Not Found', '{url}'],
+            ['method' => __METHOD__, 'role' => 'production', 'url' => $url]
+        );
 
-		return $contents;
-	}
+        return $contents;
+    }
 
-	/**
-	 * @since 3.2
-	 *
-	 * @param string $contents
-	 * @param string $type
-	 *
-	 * @return string
-	 */
-	public function format( string $contents, string $type = '' ): string {
-		if ( $type === self::FORMAT_BASE64 ) {
-			return base64_encode( $contents );
-		}
+    /**
+     * @param string $contents
+     * @param string $type
+     *
+     * @return string
+     * @since 3.2
+     *
+     */
+    public function format(string $contents, string $type = ''): string
+    {
+        if ($type === self::FORMAT_BASE64) {
+            return base64_encode($contents);
+        }
 
-		return $contents;
-	}
+        return $contents;
+    }
+
 }

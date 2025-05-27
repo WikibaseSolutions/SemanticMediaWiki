@@ -269,8 +269,6 @@ class FileIndexer {
 		);
 
 		$params += [
-			'index' => $connection->getIndexName( ElasticClient::TYPE_DATA ),
-			'id' => $id,
 			'pipeline' => 'attachment',
 			'body' => [
 				'file_content' => $content,
