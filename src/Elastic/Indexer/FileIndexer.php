@@ -265,7 +265,7 @@ class FileIndexer {
 		// CBOR format ..."
 		$content = $this->fileHandler->format(
 			$this->fileHandler->fetchContentFromFile( $file ),
-        FileHandler::FORMAT_BASE64
+		FileHandler::FORMAT_BASE64
 		);
 
 		$params += [
