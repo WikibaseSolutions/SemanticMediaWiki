@@ -218,7 +218,7 @@ class FileIndexer {
 			return;
 		}
 
-		$url = $this->protocolizeUrl( $file->getFullURL() );
+		$url = $file->getFullURL();
 		$id = $dataItem->getId();
 
 		$sha1 = $file->getSha1();
@@ -272,8 +272,9 @@ class FileIndexer {
 		// "... The source field must be a base64 encoded binary or ... the
 		// CBOR format ..."
 		$content = $this->fileHandler->format(
-			$this->fileHandler->fetchContentFromURL( $url ),
-			FileHandler::FORMAT_BASE64
+			// $this->fileHandler->fetchContentFromURL( $url ),
+            $file->getRepo()->getBackend()->getFileContents( [ 'src' => $file->getPath() ] ),
+        FileHandler::FORMAT_BASE64
 		);
 
 		// Reset the stream context
@@ -318,25 +319,6 @@ class FileIndexer {
 		$this->entityCache->associate( $title, $key );
 
 		$this->fileAttachment->createAttachment( $dataItem );
-	}
-
-	/**
-	 * Tries to add a scheme to the url, if a relative url was passed.
-	 *
-	 * @param string $url
-	 *
-	 * @return string
-	 */
-	private function protocolizeUrl( string $url ): string {
-		$parsed = parse_url( $url );
-
-		if ( $parsed !== false && isset( $parsed['scheme'] ) ) {
-			return $url;
-		}
-
-		$scheme = 'https';
-
-		return sprintf( '%s://%s', $scheme, trim( $url, '/' ) );
 	}
 
 }
