@@ -204,7 +204,7 @@ class FileIndexer {
 						]
 					]
 				]
-			]
+			],
 		];
 
 		$connection = $this->store->getConnection( 'elastic' );
@@ -260,14 +260,6 @@ class FileIndexer {
 			return;
 		}
 
-		// Fix for closed-off wiki's where SSL is not installed properly
-		stream_context_set_default( [
-			'ssl' => [
-				'verify_peer' => false,
-				'verify_peer_name' => false,
-			],
-		]);
-
 		// https://www.elastic.co/guide/en/elasticsearch/plugins/master/ingest-attachment.html
 		// "... The source field must be a base64 encoded binary or ... the
 		// CBOR format ..."
@@ -275,14 +267,6 @@ class FileIndexer {
 			$this->fileHandler->fetchContentFromFile( $file ),
         FileHandler::FORMAT_BASE64
 		);
-
-		// Reset the stream context
-		stream_context_set_default( [
-			'ssl' => [
-				'verify_peer' => true,
-				'verify_peer_name' => true,
-			],
-		]);
 
 		$params += [
 			'index' => $connection->getIndexName( ElasticClient::TYPE_DATA ),

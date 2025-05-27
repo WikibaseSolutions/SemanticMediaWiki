@@ -2,12 +2,9 @@
 
 namespace SMW\Elastic\Indexer\Attachment;
 
-use ConfigException;
 use File;
 use FileBackend;
-use MediaWiki\MediaWikiServices;
 use Psr\Log\LoggerAwareTrait;
-use RequestContext;
 use SMW\MediaWiki\FileRepoFinder;
 use Title;
 
@@ -65,24 +62,24 @@ class FileHandler {
 		return $this->fileRepoFinder->findFile( $title );
 	}
 
-    /**
-     * @since 5.0.3
-     *
-     * @param File $file
-     *
-     * @return string
-     */
-    public function fetchContentFromFile( File $file ): string {
-        $be = $file->getRepo()->getBackend();
+	/**
+	 * @since 5.0.3
+	 *
+	 * @param File $file
+	 *
+	 * @return string
+	 */
+	public function fetchContentFromFile( File $file ): string {
+		$be = $file->getRepo()->getBackend();
 
-        $content = '';
+		$content = '';
 
-        if ( $be instanceof FileBackend ) {
-            $content = $be->getFileContents( [ 'src' => $file->getPath() ] ) ?: '';
-        }
+		if ( $be instanceof FileBackend ) {
+			$content = $be->getFileContents( [ 'src' => $file->getPath() ] ) ?: '';
+		}
 
-        return $content;
-    }
+		return $content;
+	}
 
 	/**
 	 * @since 3.2
@@ -101,21 +98,19 @@ class FileHandler {
 
 		$contents = '';
 
-        $protocolizedUrl = $this->protocolizeUrl( $url );
-
 		// Avoid a "failed to open stream: HTTP request failed! HTTP/1.1 404 Not Found"
-		$file_headers = @get_headers( $protocolizedUrl );
+		$file_headers = @get_headers( $url );
 
 		if (
 			$file_headers !== false &&
 			$file_headers[0] !== 'HTTP/1.1 404 Not Found' &&
 			$file_headers[0] !== 'HTTP/1.0 404 Not Found' ) {
-			return file_get_contents( $protocolizedUrl );
+			return file_get_contents( $url );
 		}
 
 		$this->logger->info(
 			[ 'File indexer', 'HTTP/1.1 404 Not Found', '{url}' ],
-			[ 'method' => __METHOD__, 'role' => 'production', 'url' => $url, 'procolizedUrl' => $protocolizedUrl ]
+			[ 'method' => __METHOD__, 'role' => 'production', 'url' => $url ]
 		);
 
 		return $contents;
@@ -136,42 +131,4 @@ class FileHandler {
 
 		return $contents;
 	}
-
-    /**
-     * Tries to add a scheme to the url, if a relative url was passed
-     *
-     * @since 4.0.0-alpha
-     *
-     * @param string $url
-     *
-     * @return string
-     */
-    private function protocolizeUrl( string $url ): string {
-        $parsed = parse_url( $url );
-
-        if ( $parsed !== false && isset( $parsed[ 'scheme' ] ) ) {
-            return $url;
-        }
-
-        try {
-            $canonical = MediaWikiServices::getInstance()->getMainConfig()->get( 'CanonicalServer' );
-            $parsedCanonical = parse_url( $canonical );
-
-            if ( $parsedCanonical !== false && isset( $parsedCanonical[ 'scheme' ] ) ) {
-                return sprintf( '%s://%s', $parsedCanonical[ 'scheme' ], ltrim( $url, '/' ) );
-            }
-        } catch ( ConfigException $e ) {
-            // Pass through
-        }
-
-        $mainContext = RequestContext::getMain();
-
-        // Default scheme if RequestContext is null, in hope that it gets redirect if https is required
-        $scheme = 'http';
-        if ( $mainContext !== null && $mainContext->getRequest()->getProtocol() !== null ) {
-            $scheme = $mainContext->getRequest()->getProtocol();
-        }
-
-        return sprintf( '%s://%s', $scheme, ltrim( $url, '/' ) );
-    }
 }
