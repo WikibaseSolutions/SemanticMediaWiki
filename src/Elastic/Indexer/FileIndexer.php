@@ -272,8 +272,7 @@ class FileIndexer {
 		// "... The source field must be a base64 encoded binary or ... the
 		// CBOR format ..."
 		$content = $this->fileHandler->format(
-			// $this->fileHandler->fetchContentFromURL( $url ),
-            $file->getRepo()->getBackend()->getFileContents( [ 'src' => $file->getPath() ] ),
+			$this->fileHandler->fetchContentFromFile( $file ),
         FileHandler::FORMAT_BASE64
 		);
 

@@ -3,6 +3,8 @@
 namespace SMW\Elastic\Indexer\Attachment;
 
 use ConfigException;
+use File;
+use FileBackend;
 use MediaWiki\MediaWikiServices;
 use Psr\Log\LoggerAwareTrait;
 use RequestContext;
@@ -62,6 +64,25 @@ class FileHandler {
 	public function findFileByTitle( Title $title ) {
 		return $this->fileRepoFinder->findFile( $title );
 	}
+
+    /**
+     * @since 5.0.3
+     *
+     * @param File $file
+     *
+     * @return string
+     */
+    public function fetchContentFromFile( File $file ): string {
+        $be = $file->getRepo()->getBackend();
+
+        $content = '';
+
+        if ( $be instanceof FileBackend ) {
+            $content = $be->getFileContents( [ 'src' => $file->getPath() ] ) ?: '';
+        }
+
+        return $content;
+    }
 
 	/**
 	 * @since 3.2
