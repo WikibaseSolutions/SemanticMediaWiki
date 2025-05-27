@@ -2,7 +2,10 @@
 
 namespace SMW\Elastic\Indexer\Attachment;
 
+use ConfigException;
+use MediaWiki\MediaWikiServices;
 use Psr\Log\LoggerAwareTrait;
+use RequestContext;
 use SMW\MediaWiki\FileRepoFinder;
 use Title;
 
