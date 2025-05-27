@@ -34,43 +34,42 @@ class FileHandler {
 	private $readCallback;
 
 	/**
-	 * @param FileRepoFinder $fileRepoFinder
 	 * @since 3.2
 	 *
+	 * @param FileRepoFinder $fileRepoFinder
 	 */
 	public function __construct( FileRepoFinder $fileRepoFinder ) {
 		$this->fileRepoFinder = $fileRepoFinder;
 	}
 
 	/**
-	 * @param callable $readCallback
 	 * @since 3.2
 	 *
+	 * @param callable $readCallback
 	 */
 	public function setReadCallback( callable $readCallback ) {
 		$this->readCallback = $readCallback;
 	}
 
 	/**
+	 * @since 3.2
+	 *
 	 * @param Title $title
 	 *
 	 * @return string
-	 * @since 3.2
-	 *
 	 */
 	public function findFileByTitle( Title $title ) {
 		return $this->fileRepoFinder->findFile( $title );
 	}
 
 	/**
+	 * @since 5.0.3
+	 *
 	 * @param File $file
 	 *
 	 * @return string
-	 * @since 5.0.3
-	 *
 	 */
-	public function fetchContentFromFile( File $file ): string
-	{
+	public function fetchContentFromFile( File $file ): string {
 		$be = $file->getRepo()->getBackend();
 
 		$content = '';
@@ -83,14 +82,13 @@ class FileHandler {
 	}
 
 	/**
+	 * @since 3.2
+	 *
 	 * @param string $url
 	 *
 	 * @return string
-	 * @since 3.2
-	 *
 	 */
-	public function fetchContentFromURL( string $url ): string
-	{
+	public function fetchContentFromURL( string $url ): string {
 		// PHP 7.1+
 		$readCallback = $this->readCallback;
 
@@ -119,12 +117,12 @@ class FileHandler {
 	}
 
 	/**
+	 * @since 3.2
+	 *
 	 * @param string $contents
 	 * @param string $type
 	 *
 	 * @return string
-	 * @since 3.2
-	 *
 	 */
 	public function format( string $contents, string $type = '' ): string {
 		if ( $type === self::FORMAT_BASE64 ) {
